@@ -11,6 +11,8 @@
 #import <Photos/Photos.h>
 
 @interface LBXScanViewController ()
+@property (nonatomic, strong) UIView *videoView;
+
 @end
 
 @implementation LBXScanViewController
@@ -19,13 +21,13 @@
 - (void)viewDidLoad {
     [super viewDidLoad];
     // Do any additional setup after loading the view.
+//
+//    if ([self respondsToSelector:@selector(setEdgesForExtendedLayout:)]) {
+//
+//        self.edgesForExtendedLayout = UIRectEdgeNone;
+//    }
     
-    if ([self respondsToSelector:@selector(setEdgesForExtendedLayout:)]) {
-        
-        self.edgesForExtendedLayout = UIRectEdgeNone;
-    }
-    
-    self.view.backgroundColor = [UIColor blackColor];
+//    self.view.backgroundColor = [UIColor blackColor];
     
 
     switch (_libraryType) {
@@ -48,6 +50,8 @@
     [super viewDidAppear:animated];
     
     [self drawScanView];
+    
+    [self initVideoView];
     
     [self requestCameraPemissionWithResult:^(BOOL granted) {
 
@@ -121,12 +125,22 @@
     
 }
 
+- (void)initVideoView {
+    CGFloat YMinRetangle = self.view.frame.size.height / 2.0 - (self.view.frame.size.width-self.style.xScanRetangleOffset*2)/2 - self.style.centerUpOffset;
+    
+    UIView *videoView = [[UIView alloc]initWithFrame:CGRectMake(self.style.xScanRetangleOffset, YMinRetangle, CGRectGetWidth(self.view.frame)-self.style.xScanRetangleOffset*2, CGRectGetWidth(self.view.frame)-self.style.xScanRetangleOffset*2)];
+    videoView.backgroundColor = [UIColor clearColor];
+    videoView.layer.cornerRadius = 10;
+    videoView.clipsToBounds = YES;
+    [self.view addSubview:videoView];
+    [self.view bringSubviewToFront:videoView];
+    self.videoView = videoView;
+}
+
 //启动设备
 - (void)startScan
 {
-    UIView *videoView = [[UIView alloc]initWithFrame:CGRectMake(0, 0, CGRectGetWidth(self.view.frame), CGRectGetHeight(self.view.frame))];
-    videoView.backgroundColor = [UIColor clearColor];
-    [self.view insertSubview:videoView atIndex:0];
+    
     __weak __typeof(self) weakSelf = self;
     
     switch (_libraryType) {
@@ -153,7 +167,7 @@
                 }
                 
                 //AVMetadataObjectTypeITF14Code 扫码效果不行,另外只能输入一个码制，虽然接口是可以输入多个码制
-                self.scanObj = [[LBXScanNative alloc]initWithPreView:videoView ObjectType:@[strCode] cropRect:cropRect success:^(NSArray<LBXScanResult *> *array) {
+                self.scanObj = [[LBXScanNative alloc]initWithPreView:self.videoView ObjectType:@[strCode] cropRect:cropRect success:^(NSArray<LBXScanResult *> *array) {
                     
                     [weakSelf scanResultWithArray:array];
                 }];
@@ -171,7 +185,7 @@
             if (!_zxingObj) {
                 
                 __weak __typeof(self) weakSelf = self;
-                self.zxingObj = [[ZXingWrapper alloc]initWithPreView:videoView block:^(ZXBarcodeFormat barcodeFormat, NSString *str, UIImage *scanImg) {
+                self.zxingObj = [[ZXingWrapper alloc]initWithPreView:self.videoView block:^(ZXBarcodeFormat barcodeFormat, NSString *str, UIImage *scanImg) {
                     
                     LBXScanResult *result = [[LBXScanResult alloc]init];
                     result.strScanned = str;
@@ -185,7 +199,7 @@
                 if (_isOpenInterestRect) {
                     
                     //设置只识别框内区域
-                    CGRect cropRect = [LBXScanView getZXingScanRectWithPreView:videoView style:_style];
+                    CGRect cropRect = [LBXScanView getZXingScanRectWithPreView:self.videoView style:_style];
                                         
                      [_zxingObj setScanRect:cropRect];
                 }               
@@ -225,7 +239,7 @@
     [_qRScanView startScanAnimation];
 #endif
     
-    self.view.backgroundColor = [UIColor clearColor];
+//    self.view.backgroundColor = [UIColor clearColor];
 }
 
 #ifdef LBXScan_Define_ZBar
